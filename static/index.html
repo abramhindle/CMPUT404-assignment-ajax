@@ -19,8 +19,8 @@
         WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
         See the License for the specific language governing permissions and
         limitations under the License.
-    "/>
-    <script src="json2.js"></script>
+    "/><script type="text/javascript" src="{{ url_for('static', filename='json2.js') }}"></script>
+   
   </head> 
   <body bgcolor="black" height="100%" width="100%"> 
     <canvas id="c" width="100%" height="100%" style="-webkit-tap-highlight-color: transparent;"></canvas> 
@@ -30,15 +30,22 @@ var host = window.location.host;
 var context = canvas.getContext("2d");
 var W = canvas.width  = window.innerWidth-6;
 var H = canvas.height = window.innerHeight-50;
-
+var colourIndex = 0;
+var upIndex = 0;
+var downIndex = 0;
+var colours = ["#FF6600", "#FF9900", "#FFCC00", "#FFFF00", "#CCFF00", "#CC6600", "#CC9900", "#CCCC00", "#99FF00", "#99CC00", "#33FF00", "#33CC00", "#339900", "#336600", "#006600", "#009900", "#339900", "#669900", "#999900", "#99CC00", "#99FF00"];
+var uppers = ["#CC0000", "#FF0000", "#FF0033", "#FF0066", "#FF0099", "#FF00CC", "#FF00FF"];
+var downers = ["#990099", "#9900CC", "#9900FF", "#660099", "#6600CC", "#6600FF", "#330099", "#3300CC", "#3300FF"];
 
 function sendJSONXMLHTTPRequest(url, objects, callback) {
     var xhr = new XMLHttpRequest();
+    data = JSON.stringify(objects);
     xhr.onreadystatechange = function () {
         if (xhr.readyState==4) {
             try {
                 if (xhr.status==200) {
-                    //XXX: parse some JSON from the request!
+                    callback();
+                    //XXX: parse some JSON from the request! whatever for?
                     //XXX: Pass the data to the callback!
                 }
             } 
@@ -49,7 +56,11 @@ function sendJSONXMLHTTPRequest(url, objects, callback) {
     };
     //XXX: POST to a URL
     //XXX: set the mimetype and the accept headers!
-    // Remember to use application/json !
+    // Remember to use application/json ! 
+    xhr.open("POST", url, true);
+    xhr.setRequestHeader("Content-type", "application/json");
+    xhr.setRequestHeader("Content-length", data.length);
+    xhr.send(data);
 }
 
 
@@ -136,9 +147,11 @@ function getPosition(e) {
 
 function addEntity(entity, data) {
     world[entity] = data;
-    drawNextFrame(); // (but should we?)
+    var url = "/entity/" + entity;
+    sendJSONXMLHTTPRequest(url, data, update);
+    // (but should we?)
     //XXX: Send a XHTML Request that updates the entity you just  modified!
-
+    
 }
 
 var counter = 0;
@@ -247,21 +260,49 @@ mouse = (function() {
 // Add the application specific mouse listeners!
 //XXX: TODO Make these prettier!
 mouse.mousedowners.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'blue'});
+    addEntityWithoutName({'x':x,'y':y,'colour':downers[downIndex]});
+    ++downIndex;
+    if (downIndex > 8) {
+        downIndex = 0;
+    }
 });
 
 mouse.mouseuppers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'red'});
+    addEntityWithoutName({'x':x,'y':y,'colour':uppers[upIndex]});
+    ++upIndex;
+    if (upIndex > 6) {
+        upIndex = 0;
+    }
 });
 
 mouse.mousedraggers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'green',
+    addEntityWithoutName({'x':x,'y':y,'colour':colours[colourIndex],
                           'radius':10});
+    ++colourIndex;
+    if (colourIndex > 20) {
+        colourIndex = 0;
+    }
 });
-
 
 function update() {
     //XXX: TODO Get the world from the webservice using a XMLHTTPRequest
+    var url = "http://127.0.0.1:5000/world"
+    var xhr = new XMLHttpRequest();
+    xhr.onreadystatechange = function () {
+        if (xhr.readyState==4) {
+            try {
+                if (xhr.status==200) {
+                    world = JSON.parse(xhr.responseText);
+                    drawNextFrame()
+                }
+            } 
+            catch(e) {
+                alert('Error: ' + e.name);
+            }
+        }
+    };
+    xhr.open("GET",url, true);
+    xhr.send();
     drawFrame();
 }
 
