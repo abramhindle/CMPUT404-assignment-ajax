@@ -34,13 +34,19 @@ var H = canvas.height = window.innerHeight-50;
 
 function sendJSONXMLHTTPRequest(url, objects, callback) {
     var xhr = new XMLHttpRequest();
+    j = JSON.stringify(objects); 
     xhr.onreadystatechange = function () {
         if (xhr.readyState==4) {
             try {
+		
                 if (xhr.status==200) {
                     //XXX: parse some JSON from the request!
                     //XXX: Pass the data to the callback!
+		    newEntity = JSON.parse(j); 
+		    callback(newEntity);
+
                 }
+		
             } 
             catch(e) {
                 alert('Error: ' + e.name);
@@ -50,6 +56,10 @@ function sendJSONXMLHTTPRequest(url, objects, callback) {
     //XXX: POST to a URL
     //XXX: set the mimetype and the accept headers!
     // Remember to use application/json !
+    xhr.open("POST", url, true);
+    xhr.setRequestHeader("Content-Type","application/json;charset=UTF-8");
+
+    xhr.send(j);
 }
 
 
@@ -97,6 +107,26 @@ function renderFrame() {
         drawCircle(context,prepEntity(entity));
     }
 }
+//create from online content
+
+function prepEntity(entity) {
+    if (!entity["colour"]) {
+        entity["colour"] = "#00FF00";
+    }
+    if (!entity["radius"]) {
+        entity["radius"] = 10;
+    }
+    return entity;
+}
+
+
+function renderFrameB() {
+    clearFrame();
+    for (var key in world) {
+        var entity = world[key];
+        drawCircle(context,prepEntityB(entity));
+    }
+}
 
 var drawNext = true;
 
@@ -138,7 +168,10 @@ function addEntity(entity, data) {
     world[entity] = data;
     drawNextFrame(); // (but should we?)
     //XXX: Send a XHTML Request that updates the entity you just  modified!
-
+    sendJSONXMLHTTPRequest('/entity/world', data, function(newEntity) {
+	drawCircle(context,newEntity);
+	
+    });
 }
 
 var counter = 0;
@@ -263,10 +296,32 @@ mouse.mousedraggers.push(function(x,y,clicked,e) {
 function update() {
     //XXX: TODO Get the world from the webservice using a XMLHTTPRequest
     drawFrame();
+    
+    //sendJSONXMLHTTPRequest("/entity/world", xhr.response, 0);
+    var xhr = new XMLHttpRequest();
+    xhr.onreadystatechange = function () {
+        if (xhr.readyState==4) {
+            try {
+                if (xhr.status==200) {
+                    world = JSON.parse(xhr.response);
+		    renderFrame();
+  		    
+                }
+            } 
+            catch(e) {
+                alert('Error: ' + e.name);
+            }
+        }
+    };
+    xhr.open("GET", "/entity/world", true);
+    xhr.setRequestHeader("Content-Type","application/json;charset=UTF-8");
+    xhr.send();
+
+
 }
 
 // 30 frames per second
-setInterval( update, 1000/30.0);
+window.setInterval( update(), 1000/30.0);
 
 
 
