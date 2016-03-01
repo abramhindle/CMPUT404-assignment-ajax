@@ -22,7 +22,8 @@
 
 
 import flask
-from flask import Flask, request
+from flask import Flask, request, render_template
+
 import json
 app = Flask(__name__)
 app.debug = True
@@ -36,6 +37,7 @@ app.debug = True
 class World:
     def __init__(self):
         self.clear()
+        
         
     def update(self, entity, key, value):
         entry = self.space.get(entity,dict())
@@ -58,7 +60,6 @@ class World:
 # curl -v   -H "Content-Type: appication/json" -X PUT http://127.0.0.1:5000/entity/X -d '{"x":1,"y":1}' 
 
 myWorld = World()          
-
 # I give this to you, this is how you get the raw body/data portion of a post in flask
 # this should come with flask but whatever, it's not my project.
 def flask_post_json():
@@ -73,27 +74,52 @@ def flask_post_json():
 
 @app.route("/")
 def hello():
-    '''Return something coherent here.. perhaps redirect to /static/index.html '''
-    return None
+    return flask.redirect(flask.url_for('static', filename="index.html"))
+
 
 @app.route("/entity/<entity>", methods=['POST','PUT'])
 def update(entity):
     '''update the entities via this interface'''
-    return None
+    data = flask_post_json()
+    if request.method == 'POST' or request.method == 'PUT':
+        newdata = {}
+        newdata['x'] = data['x']
+        newdata['y'] = data['y']
+        counter=0
+        data = newdata #all other information is not needed
+        with open('world','r') as f:
+            cWorld = f.read()
+            cWorld.split(':')
+            counter = len(cWorld)/24 #3perobject*8bytes
+        newdata = {}
+        newdata[counter] = data
+        counter+=1
+        with open('world','a') as f:
+            f.write(str(newdata))
+    myWorld.update(entity,counter,data)
+    return entity  
 
 @app.route("/world", methods=['POST','GET'])    
 def world():
     '''you should probably return the world here'''
-    return None
+    if request.method=='GET':
+        with open('world','r') as f:
+            newWorld = f.read()
+            newWorld = newWorld.split('}{')
+            for dot in newWorld:
+                myWorld.update('world',newWorld[0],newWorld[1])
+    return flask.json.jsonify(myWorld.world())
 
 @app.route("/entity/<entity>")    
 def get_entity(entity):
-    '''This is the GET version of the entity interface, return a representation of the entity'''
-    return None
+    return flask.json.jsonify(myWorld.get(entity))
 
 @app.route("/clear", methods=['POST','GET'])
 def clear():
     '''Clear the world out!'''
+    f = open('world','w')
+    f.write("")
+    myWorld.clear()
     return None
 
 if __name__ == "__main__":
