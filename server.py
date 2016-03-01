@@ -21,9 +21,6 @@
 #     pip install flask
 
 
-from __future__ import print_function
-import sys
-
 import flask
 from flask import Flask, request, render_template
 
@@ -77,8 +74,6 @@ def flask_post_json():
 
 @app.route("/")
 def hello():
-    '''Return something coherent here.. perhaps redirect to /static/index.html '''
-    
     return flask.redirect(flask.url_for('static', filename="index.html"))
 
 
@@ -101,7 +96,6 @@ def update(entity):
         counter+=1
         with open('world','a') as f:
             f.write(str(newdata))
-    #print(data," ",type(data), file=sys.stderr)
     myWorld.update(entity,counter,data)
     return entity  
 
@@ -118,8 +112,6 @@ def world():
 
 @app.route("/entity/<entity>")    
 def get_entity(entity):
-    '''This is the GET version of the entity interface, return a representation of the entity'''
-
     return flask.json.jsonify(myWorld.get(entity))
 
 @app.route("/clear", methods=['POST','GET'])
@@ -128,7 +120,6 @@ def clear():
     f = open('world','w')
     f.write("")
     myWorld.clear()
-    
     return None
 
 if __name__ == "__main__":
